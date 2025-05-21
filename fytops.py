@@ -17,7 +17,7 @@ class FyTops(commands.Bot):
         
         try:
             synced = await self.tree.sync(guild=GUILD_ID)
-            print(f"Synced {len(synced)} commands to guild {GUILD_ID}")
+            print(f"Synced {len(synced)} commands to guild {GUILD_ID.id}")
         
         except Exception as e:
             print(f"Error syncing commands: {e}")
@@ -33,12 +33,61 @@ class FyTops(commands.Bot):
         '''
         Set up slash commands
         '''
-        @self.tree.command(
-            name="recent", 
-            description="Get recent tracks",
-            guild=GUILD_ID
+        
+        @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
+        @app_commands.describe(
+            limit = "the number of entities to return (max 50)",
+            offset = "the index of the first entity to return",
+            time_range = "Over what time frame are the stats computed (short, medium, long)"
         )
-        async def recent(interaction: discord.Interaction, limit: int, optional: int=None):
-            '''
-            '''
-            await interaction.response.send_message(f"Requesting not recent {limit} {optional}")
+        async def top_artists(interaction: discord.Interaction, limit: int = 20, offset: int = 0, time_range: str = 'm'):
+            """Get user's top listened artists
+                
+                Parameters:
+                    limit (int): the number of entities to return (max 50)
+                    offset (int): the index of the first entity to return
+                    time_range (str): Over what time frame are the affinities computed
+                    Valid-values: short, medium, long
+            """
+            
+            # TODO: Hook Spotify call function
+            await interaction.response.send_message(f"Requesting {limit} top artists...")
+
+
+
+
+        @self.tree.command(name="tracks", description="See your most listened tracks", guild=GUILD_ID)
+        @app_commands.describe(
+            limit = "the number of entities to return (max 50)",
+            offset = "the index of the first entity to return",
+            time_range = "Over what time frame are the stats computed (short, medium, long)"
+        )
+        async def top_tracks(interaction: discord.Interaction, limit: int = 20, offset: int = 0, time_range: str = 'm'):
+            """Get user's top listened artists
+                
+                Parameters:
+                    limit (int): the number of entities to return (max 50)
+                    offset (int): the index of the first entity to return
+                    time_range (str): Over what time frame are the affinities computed
+                    Valid-values: short, medium, long
+            """
+            
+            # TODO: Hook Spotify call function
+            await interaction.response.send_message(f"Requesting {limit} top tracks...")
+
+
+
+
+        @self.tree.command(name="recent", description="See your recent tracks", guild=GUILD_ID)
+        @app_commands.describe(
+            limit = "number of tracks (max 50)"
+        )
+        async def recent(interaction: discord.Interaction, limit: int = 20):
+            """Get user's recently played tracks
+            
+                Parameters:
+                    - limit - the number of entities to return (max 50)
+            """
+            
+            # TODO: Hook Spotify call function
+            await interaction.response.send_message(f"Requesting {limit} recent tracks...")
