@@ -14,13 +14,14 @@ class FyTops(commands.Bot):
 
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
-        
+
         try:
             synced = await self.tree.sync(guild=GUILD_ID)
             print(f"Synced {len(synced)} commands to guild {GUILD_ID.id}")
         
         except Exception as e:
             print(f"Error syncing commands: {e}")
+
 
     async def on_message(self, message):
         if message.author == self.user:
@@ -34,19 +35,24 @@ class FyTops(commands.Bot):
         Set up slash commands
         '''
         
-        @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
+        @self.tree.command(
+            name="artists", description="See your most listened artists", guild=GUILD_ID
+        )
         @app_commands.describe(
             limit = "the number of entities to return (max 50)",
             offset = "the index of the first entity to return",
-            time_range = "Over what time frame are the stats computed (short, medium, long)"
+            time_range = "over what time frame are the stats computed (short, medium, long)"
         )
-        async def top_artists(interaction: discord.Interaction, limit: int = 20, offset: int = 0, time_range: str = 'm'):
+        async def top_artists(
+            interaction: discord.Interaction, limit: int = 20, 
+            offset: int = 0, time_range: str = 'm'
+        ):
             """Get user's top listened artists
                 
                 Parameters:
                     limit (int): the number of entities to return (max 50)
                     offset (int): the index of the first entity to return
-                    time_range (str): Over what time frame are the affinities computed
+                    time_range (str): Over what time frame are the stats computed
                     Valid-values: short, medium, long
             """
             
@@ -56,19 +62,24 @@ class FyTops(commands.Bot):
 
 
 
-        @self.tree.command(name="tracks", description="See your most listened tracks", guild=GUILD_ID)
+        @self.tree.command(
+            name="tracks", description="See your most listened tracks", guild=GUILD_ID
+        )
         @app_commands.describe(
             limit = "the number of entities to return (max 50)",
             offset = "the index of the first entity to return",
-            time_range = "Over what time frame are the stats computed (short, medium, long)"
+            time_range = "over what time frame are the stats computed (short, medium, long)"
         )
-        async def top_tracks(interaction: discord.Interaction, limit: int = 20, offset: int = 0, time_range: str = 'm'):
+        async def top_tracks(
+            interaction: discord.Interaction, limit: int = 20, 
+            offset: int = 0, time_range: str = 'm'
+        ):
             """Get user's top listened artists
                 
                 Parameters:
                     limit (int): the number of entities to return (max 50)
                     offset (int): the index of the first entity to return
-                    time_range (str): Over what time frame are the affinities computed
+                    time_range (str): Over what time frame are the stats computed
                     Valid-values: short, medium, long
             """
             
@@ -78,11 +89,16 @@ class FyTops(commands.Bot):
 
 
 
-        @self.tree.command(name="recent", description="See your recent tracks", guild=GUILD_ID)
+        @self.tree.command(
+            name="recent", description="See your recent tracks", guild=GUILD_ID
+        )
         @app_commands.describe(
             limit = "number of tracks (max 50)"
         )
-        async def recent(interaction: discord.Interaction, limit: int = 20):
+        async def recent(
+            interaction: discord.Interaction, 
+            limit: int = 20
+        ):
             """Get user's recently played tracks
             
                 Parameters:

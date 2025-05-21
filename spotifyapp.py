@@ -5,7 +5,7 @@ import json
 class SpotifyAppOAuth:
     @staticmethod
     def generate_auth_manager(
-        client_id=None, client_secret=None, redirect_uri='http://127.0.0.1:3000'
+        client_id, client_secret, redirect_uri
     ):
         scopes = [
             "user-top-read",
@@ -60,3 +60,23 @@ class SpotifyApp:
         """
         with open(filename, 'w') as f:
             json.dump(data, f, indent=4)
+    
+    @staticmethod
+    def standardize_time_range(range: str):
+        if not range:
+            raise ValueError
+        
+        if range in ["s", "small", "small_term"]:
+            return "small_term"
+
+        elif range in ["m", "medium", "medium_term"]:
+            return "medium_term"
+
+        elif range in ["l", "long", "long_term"]:
+            return "long_term"
+        
+        else:
+            raise ValueError
+    
+    
+        
