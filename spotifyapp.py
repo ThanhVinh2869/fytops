@@ -2,9 +2,9 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import json
             
-class ItopStatsOAuth:
+class SpotifyAppOAuth:
     @staticmethod
-    def generate_token(
+    def generate_auth_manager(
         client_id=None, client_secret=None, redirect_uri='http://127.0.0.1:3000'
     ):
         scopes = [
@@ -12,19 +12,18 @@ class ItopStatsOAuth:
             "user-read-recently-played"
             ]
         
-        token = SpotifyOAuth(
+        auth_manager = SpotifyOAuth(
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri=redirect_uri,
             scope=scopes
         )
         
-        return token
+        return auth_manager
         
-        # TODO: token validation (time < 60 minutes)
         # TODO: catch error
 
-class ItopStats:
+class SpotifyApp:
     def __init__(
         self, token=None
     ):
