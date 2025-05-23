@@ -33,20 +33,105 @@ class SpotifyApp:
     def get_user_top_artists(
         self, limit=20, offset=0, time_range="medium_term"
     ):
-        top_artists = self.sp_object.current_user_top_artists()
-        return top_artists
+        try:
+            time_range = self.standardize_time_range(time_range)
+        except ValueError:
+            print("Invalid term")
+            return None
+        
+        return self.sp_object.current_user_top_artists(
+            limit=limit, offset=offset, time_range=time_range
+        )
     
     def get_user_top_tracks(
         self, limit=20, offset=0, time_range="medium_term"
     ):
-        top_tracks = self.sp_object.current_user_top_tracks()
-        return top_tracks
+        try:
+            time_range = self.standardize_time_range(time_range)
+        except ValueError:
+            print("Invalid term")
+            return None
+        
+        return self.sp_object.current_user_top_tracks(
+            limit=limit, offset=offset, time_range=time_range
+        )
         
     def get_user_recently_played(
         self, limit=50
     ):
-        recently_played = self.sp_object.current_user_recently_played()
-        return recently_played
+        return self.sp_object.current_user_recently_played(limit=limit)
+    
+    @staticmethod
+    def format_top_artists(data: dict):
+        limit = data["limit"]
+        formatted = {
+            "color": 0x07e380,
+            "title": f"Top {limit} Artists",
+            "fields": []
+        }
+
+        for rank, item in enumerate(data["items"], 1):
+            name = item["name"]
+            url = item["external_urls"]["spotify"]
+            followers = item["followers"]["total"]
+            
+            field = {
+                "name": f"{SpotifyApp.rank_emojify(rank)} {name}",
+                "value": f"[page]({url}) - {followers} followers",
+                "inline": False
+            }      
+
+            formatted["fields"].append(field)
+            
+        return formatted
+    
+    @staticmethod
+    def format_top_tracks(data: dict):
+        limit = data["limit"]
+        formatted = {
+            "color": 0x07e380,
+            "title": f"Top {limit} Tracks",
+            "fields": []
+        }
+
+        for rank, item in enumerate(data["items"], 1):
+            # Album info
+            album_name = item["album"]["name"]
+            album_url = item["external_urls"]["spotify"]
+            
+            # Artists info
+            artist_name_list = []
+            for artist in item["artists"]:
+                name = artist["name"]
+                artist_name_list.append(name)
+            
+            artist_names = ", ".join(artist_name_list)
+            
+            # Song info
+            song_name = item["name"]
+            song_url = item["external_urls"]["spotify"]
+            
+            # Format field
+            field = {
+                "name": f"{SpotifyApp.rank_emojify(rank)} {song_name} - {artist_names}",
+                "value": f"[page]({song_url}) - from album [{album_name}]({album_url})",
+                "inline": False
+            }
+            
+            formatted["fields"].append(field)
+
+        return formatted
+    
+    @staticmethod
+    def rank_emojify(rank: int):
+        if rank == 1:
+            return ":first_place:"
+        elif rank == 2:
+            return ":second_place:"
+        elif rank == 3:
+            return ":third_place:"
+        else:
+            return f"{rank}."
     
     @staticmethod
     def dict_to_json(
