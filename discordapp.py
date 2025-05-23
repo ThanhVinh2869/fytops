@@ -15,8 +15,8 @@ class DiscordApp():
         embed.title = data.get("title", None)
         embed.url = data.get("url", None)
         embed.description = data.get("description", None)
-        embed.set_image(data.get("image", None))
-        embed.set_thumbnail(data.get("thumbnail", None))
+        embed.set_image(url=data.get("image", None))
+        embed.set_thumbnail(url=data.get("thumbnail", None))
         embed.timestamp = data.get("timestamp", None)
 
         if "footer" in data:
@@ -27,9 +27,11 @@ class DiscordApp():
         
         if "fields" in data:
             try:
-                DiscordApp.embed_field(embed, data["fields"])
+                DiscordApp.embed_fields(embed, data["fields"])
             except ValueError:
                 print("Only 25 fields allowed per embed!")
+        
+        return embed
             
     @staticmethod
     def embed_fields(embed: discord.Embed, fields: list):
@@ -41,4 +43,4 @@ class DiscordApp():
             name = field.get("name", None)
             value = field.get("value", None)
             inline = field.get("inline", None)
-            embed.add_field(name, value, inline)
+            embed.add_field(name=name, value=value, inline=inline)

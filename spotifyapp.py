@@ -25,10 +25,10 @@ class SpotifyAppOAuth:
 
 class SpotifyApp:
     def __init__(
-        self, token=None
+        self, oauth_manager=None
     ):
-        self.oauth_token = token
-        self.sp_object = spotipy.Spotify(auth_manager=self.oauth_token)
+        self.oauth_manager = oauth_manager
+        self.sp_object = spotipy.Spotify(auth_manager=self.oauth_manager)
     
     def get_user_top_artists(
         self, limit=20, offset=0, time_range="medium_term"
@@ -57,7 +57,7 @@ class SpotifyApp:
         )
         
     def get_user_recently_played(
-        self, limit=50
+        self, limit=20
     ):
         return self.sp_object.current_user_recently_played(limit=limit)
     
@@ -75,6 +75,7 @@ class SpotifyApp:
             url = item["external_urls"]["spotify"]
             followers = item["followers"]["total"]
             
+            # Format field
             field = {
                 "name": f"{SpotifyApp.rank_emojify(rank)} {name}",
                 "value": f"[page]({url}) - {followers} followers",
@@ -123,6 +124,40 @@ class SpotifyApp:
         return formatted
     
     @staticmethod
+    def format_recent(data: dict):
+        formatted = {
+            "color": 0x07e380,
+            "title": f"Recent played Tracks",
+        }
+        
+        time_list = ""
+        song_infos = ""
+        
+        for item in data["items"]:
+            time = item["played_at"]
+            song = item["track"]["name"]
+            artists = [artist["name"] for artist in item["track"]["artist"]]
+            
+            time_list += f"{time}\n"
+            song_infos += f"{song} - {", ".join(artists)}\n"
+        
+        column1 = {
+            "name": "Played at",
+            "value": time_list,
+            "inline": True
+        }
+        
+        column2 = {
+            "name": "Track",
+            "value": song_infos,
+            "inline": True
+        }
+        
+        formatted["fields"] = [column1, column2]
+        
+        return formatted
+    
+    @staticmethod
     def rank_emojify(rank: int):
         if rank == 1:
             return ":first_place:"
@@ -132,19 +167,6 @@ class SpotifyApp:
             return ":third_place:"
         else:
             return f"{rank}."
-    
-    @staticmethod
-    def dict_to_json(
-        data, filename
-    ):
-        """Writes a Python dictionary to a JSON file.
-        
-        Args:
-            data (dict): The dictionary to write.
-            filename (str): The name of the file to write to.
-        """
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=4)
     
     @staticmethod
     def standardize_time_range(range: str):
@@ -163,5 +185,17 @@ class SpotifyApp:
         else:
             raise ValueError
     
+    @staticmethod
+    def dict_to_json(
+        data, filename
+    ):
+        """Writes a Python dictionary to a JSON file.
+        
+        Args:
+            data (dict): The dictionary to write.
+            filename (str): The name of the file to write to.
+        """
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
     
         

@@ -6,19 +6,19 @@ import discord
 from fytops import FyTops
 
 # Request token
-token = SpotifyAppOAuth().generate_auth_manager(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
+# oauth_manager = SpotifyAppOAuth().generate_auth_manager(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
 
-# Perform requests
-current_object = SpotifyApp(token)
-top_artists = current_object.get_user_top_artists()
-top_tracks = current_object.get_user_top_tracks()
-recently_played = current_object.get_user_recently_played()
+# # Perform requests
+# current_object = SpotifyApp(oauth_manager)
+# top_artists = current_object.get_user_top_artists()
+# top_tracks = current_object.get_user_top_tracks()
+# recently_played = current_object.get_user_recently_played()
 
-# Convert to JSON
-SpotifyApp.dict_to_json(top_artists, "top_artists.json")
-SpotifyApp.dict_to_json(top_tracks, "top_tracks.json")
-SpotifyApp.dict_to_json(recently_played, "recently_played.json")
+# # Convert to JSON
+# SpotifyApp.dict_to_json(top_artists, "top_artists.json")
+# SpotifyApp.dict_to_json(top_tracks, "top_tracks.json")
+# SpotifyApp.dict_to_json(recently_played, "recently_played.json")
 
-# fytops = FyTops()
+fytops = FyTops(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
 
-# fytops.run(BOT_TOKEN)
+fytops.run(BOT_TOKEN)

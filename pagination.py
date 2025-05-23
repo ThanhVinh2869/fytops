@@ -3,6 +3,9 @@ from typing import Callable, Optional
 
 
 class Pagination(discord.ui.View):
+    '''
+    https://stackoverflow.com/questions/76247812/how-to-create-pagination-embed-menu-in-discord-py
+    '''
     def __init__(self, interaction: discord.Interaction, get_page: Callable):
         self.interaction = interaction
         self.get_page = get_page

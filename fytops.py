@@ -1,17 +1,33 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discordapp import DiscordApp
+from spotifyapp import SpotifyAppOAuth, SpotifyApp
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
 class FyTops(commands.Bot):
-    def __init__(self):
+    def __init__(
+        self, client_id, client_secret, redirect_uri
+    ):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+        self.spotify_object = self.get_spotify_object()
+        
         intents = discord.Intents.default()
         intents.message_content = True
-        
         super().__init__(command_prefix="!", intents=intents)
+        
         self.setup_commands()
-
+        
+    def get_spotify_object(self):
+        manager = SpotifyAppOAuth().generate_auth_manager(
+            self.client_id, self.client_secret, self.redirect_uri
+        )
+        
+        return SpotifyApp(manager)
+        
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
 
@@ -21,7 +37,6 @@ class FyTops(commands.Bot):
         
         except Exception as e:
             print(f"Error syncing commands: {e}")
-
 
     async def on_message(self, message):
         if message.author == self.user:
@@ -55,9 +70,19 @@ class FyTops(commands.Bot):
                     time_range (str): Over what time frame are the stats computed
                     Valid-values: short, medium, long
             """
+
+            # Request raw data from Spotify
+            raw_data = self.spotify_object.get_user_top_artists(
+                limit=limit, offset=offset, time_range=time_range
+            )
             
-            # TODO: Hook Spotify call function
-            await interaction.response.send_message(f"Requesting {limit} top artists...")
+            # Format data and convert to embed
+            formatted = SpotifyApp.format_top_artists(raw_data)
+            embed = DiscordApp.dict_to_embed(formatted)
+            embed.description = f"<@{interaction.user.id}>"
+            
+            # Send embed
+            await interaction.response.send_message(embed=embed)
 
 
 
