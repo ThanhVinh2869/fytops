@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from discordapp import DiscordApp
 from spotifyapp import SpotifyAppOAuth, SpotifyApp
+from pagination import Pagination
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
@@ -44,6 +45,10 @@ class FyTops(commands.Bot):
         
         if message.content.startswith("hi"):
             await message.channel.send(f"Hi there! <@{message.author.id}>!")
+        
+        elif message.content == "!ping":
+            latency = self.latency * 1000  # Convert to milliseconds
+            await message.channel.send(f'Pong! Latency: **{latency:.2f}ms**')
             
     def setup_commands(self):
         '''
@@ -76,16 +81,25 @@ class FyTops(commands.Bot):
                 limit=limit, offset=offset, time_range=time_range
             )
             
-            # Format data and convert to embed
+            # Format data
+            # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = SpotifyApp.format_top_artists(raw_data)
-            embed = DiscordApp.dict_to_embed(formatted)
-            embed.description = f"<@{interaction.user.id}>"
+            formatted["description"] = f"<@{interaction.user.id}>"
+
+            # Pagination system
+            fields = formatted.pop("fields", None)
             
-            # Send embed
-            await interaction.response.send_message(embed=embed)
+            L = 10 # elements per page
+            async def get_page(page: int):
+                data = DiscordApp(formatted)
+                offset = (page-1) * L
+                for field in fields[offset:offset+L]:
+                    data.embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+                n = Pagination.compute_total_pages(len(fields), L)
+                data.embed.set_footer(text=f"Page {page} of {n}")
+                return data.embed, n
 
-
-
+            await Pagination(interaction, get_page).navigate()
 
         @self.tree.command(
             name="tracks", description="See your most listened tracks", guild=GUILD_ID
@@ -108,11 +122,19 @@ class FyTops(commands.Bot):
                     Valid-values: short, medium, long
             """
             
-            # TODO: Hook Spotify call function
-            await interaction.response.send_message(f"Requesting {limit} top tracks...")
-
-
-
+            # Request raw data from Spotify
+            raw_data = self.spotify_object.get_user_top_tracks(
+                limit=limit, offset=offset, time_range=time_range
+            )
+            
+            # Format data and convert to embed
+            formatted = SpotifyApp.format_top_tracks(raw_data)
+            formatted["description"] = f"<@{interaction.user.id}>"
+            
+            data = DiscordApp(formatted)
+            
+            # Send embed
+            await interaction.response.send_message(embed=data.embed)
 
         @self.tree.command(
             name="recent", description="See your recent tracks", guild=GUILD_ID
@@ -129,6 +151,15 @@ class FyTops(commands.Bot):
                 Parameters:
                     - limit - the number of entities to return (max 50)
             """
+
+            # Request raw data from Spotify
+            raw_data = self.spotify_object.get_user_recently_played(limit=limit)
             
-            # TODO: Hook Spotify call function
-            await interaction.response.send_message(f"Requesting {limit} recent tracks...")
+            # Format data and convert to embed
+            formatted = SpotifyApp.format_recent(raw_data)
+            formatted["description"] = f"<@{interaction.user.id}>"
+            
+            data = DiscordApp(formatted)
+            
+            # Send embed
+            await interaction.response.send_message(embed=data.embed)

@@ -1,6 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import json
+import dateutil.parser as dp
             
 class SpotifyAppOAuth:
     @staticmethod
@@ -96,25 +97,17 @@ class SpotifyApp:
         }
 
         for rank, item in enumerate(data["items"], 1):
-            # Album info
             album_name = item["album"]["name"]
             album_url = item["external_urls"]["spotify"]
             
-            # Artists info
-            artist_name_list = []
-            for artist in item["artists"]:
-                name = artist["name"]
-                artist_name_list.append(name)
+            artists = ", ".join([artist["name"] for artist in item["artists"]])
             
-            artist_names = ", ".join(artist_name_list)
-            
-            # Song info
             song_name = item["name"]
             song_url = item["external_urls"]["spotify"]
             
             # Format field
             field = {
-                "name": f"{SpotifyApp.rank_emojify(rank)} {song_name} - {artist_names}",
+                "name": f"{SpotifyApp.rank_emojify(rank)} {song_name} - {artists}",
                 "value": f"[page]({song_url}) - from album [{album_name}]({album_url})",
                 "inline": False
             }
@@ -128,32 +121,25 @@ class SpotifyApp:
         formatted = {
             "color": 0x07e380,
             "title": f"Recent played Tracks",
+            "fields": []
         }
-        
-        time_list = ""
-        song_infos = ""
-        
+
         for item in data["items"]:
-            time = item["played_at"]
-            song = item["track"]["name"]
-            artists = [artist["name"] for artist in item["track"]["artist"]]
+            song_name = item["track"]["name"]
+            song_url = item["track"]["external_urls"]["spotify"]
             
-            time_list += f"{time}\n"
-            song_infos += f"{song} - {", ".join(artists)}\n"
-        
-        column1 = {
-            "name": "Played at",
-            "value": time_list,
-            "inline": True
-        }
-        
-        column2 = {
-            "name": "Track",
-            "value": song_infos,
-            "inline": True
-        }
-        
-        formatted["fields"] = [column1, column2]
+            iso_time = item["played_at"]
+            unix_time = round(SpotifyApp.iso_to_unix(iso_time))
+            
+            artists = ", ".join([artist["name"] for artist in item["track"]["artists"]])
+
+            field = {
+                "name": f"{song_name} - {artists}",
+                "value": f"Played <t:{unix_time}:R> (<t:{unix_time}:f>) - [url]({song_url})",
+                "inline": False
+            }
+            
+            formatted["fields"].append(field)
         
         return formatted
     
@@ -186,6 +172,10 @@ class SpotifyApp:
             raise ValueError
     
     @staticmethod
+    def iso_to_unix(time):
+        return dp.parse(time).timestamp()
+    
+    @staticmethod
     def dict_to_json(
         data, filename
     ):
@@ -197,5 +187,3 @@ class SpotifyApp:
         """
         with open(filename, 'w') as f:
             json.dump(data, f, indent=4)
-    
-        
