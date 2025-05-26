@@ -64,10 +64,9 @@ class SpotifyApp:
     
     @staticmethod
     def format_top_artists(data: dict):
-        limit = data["limit"]
         formatted = {
             "color": 0x07e380,
-            "title": f"Top {limit} Artists",
+            "title": f"Top Artists",
             "fields": []
         }
 
@@ -89,10 +88,9 @@ class SpotifyApp:
     
     @staticmethod
     def format_top_tracks(data: dict):
-        limit = data["limit"]
         formatted = {
             "color": 0x07e380,
-            "title": f"Top {limit} Tracks",
+            "title": f"Top Tracks",
             "fields": []
         }
 

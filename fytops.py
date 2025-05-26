@@ -85,21 +85,10 @@ class FyTops(commands.Bot):
             # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = SpotifyApp.format_top_artists(raw_data)
             formatted["description"] = f"<@{interaction.user.id}>"
-
-            # Pagination system
-            fields = formatted.pop("fields", None)
             
-            L = 10 # elements per page
-            async def get_page(page: int):
-                data = DiscordApp(formatted)
-                offset = (page-1) * L
-                for field in fields[offset:offset+L]:
-                    data.embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
-                n = Pagination.compute_total_pages(len(fields), L)
-                data.embed.set_footer(text=f"Page {page} of {n}")
-                return data.embed, n
-
-            await Pagination(interaction, get_page).navigate()
+            # Convert to embed and create a pagination system
+            data = DiscordApp(formatted)
+            await data.fields_pagination(interaction=interaction, L=10)
 
         @self.tree.command(
             name="tracks", description="See your most listened tracks", guild=GUILD_ID
@@ -127,14 +116,14 @@ class FyTops(commands.Bot):
                 limit=limit, offset=offset, time_range=time_range
             )
             
-            # Format data and convert to embed
+            # Format data
+            # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = SpotifyApp.format_top_tracks(raw_data)
             formatted["description"] = f"<@{interaction.user.id}>"
-            
+
+            # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
-            
-            # Send embed
-            await interaction.response.send_message(embed=data.embed)
+            await data.fields_pagination(interaction=interaction, L=10)
 
         @self.tree.command(
             name="recent", description="See your recent tracks", guild=GUILD_ID
@@ -155,11 +144,11 @@ class FyTops(commands.Bot):
             # Request raw data from Spotify
             raw_data = self.spotify_object.get_user_recently_played(limit=limit)
             
-            # Format data and convert to embed
+            # Format data
+            # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = SpotifyApp.format_recent(raw_data)
             formatted["description"] = f"<@{interaction.user.id}>"
-            
+
+            # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
-            
-            # Send embed
-            await interaction.response.send_message(embed=data.embed)
+            await data.fields_pagination(interaction=interaction, L=10)
