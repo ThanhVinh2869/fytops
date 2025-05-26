@@ -59,9 +59,11 @@ class FyTops(commands.Bot):
             """
             
             # Request and format data from Spotify
-            # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = self.spotify_object.format_top_artists(limit=50)
-            formatted["description"] = f"<@{interaction.user.id}>"
+            formatted["author"] = {
+                "name": interaction.user.name,
+                "icon_url": f"{interaction.user.avatar.url}"
+            }
             
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
@@ -76,9 +78,11 @@ class FyTops(commands.Bot):
             """
             
             # Request and format data from Spotify
-            # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = self.spotify_object.format_top_tracks(limit=50)
-            formatted["description"] = f"<@{interaction.user.id}>"
+            formatted["author"] = {
+                "name": interaction.user.name,
+                "icon_url": f"{interaction.user.avatar.url}"
+            }
 
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
@@ -93,9 +97,11 @@ class FyTops(commands.Bot):
             """
             
             # Request and format data from Spotify
-            # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
             formatted = self.spotify_object.format_recent(limit=50)
-            formatted["description"] = f"<@{interaction.user.id}>"
+            formatted["author"] = {
+                "name": interaction.user.name,
+                "icon_url": f"{interaction.user.avatar.url}"
+            }
 
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)

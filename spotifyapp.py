@@ -28,19 +28,41 @@ class SpotifyApp(spotipy.Spotify):
         )
         
         self.auth_manager = auth_manager
+        
+    def spotify_user_info(self):
+        user = self.me()
+        username = user["display_name"]
+        user_url = user["external_urls"]["spotify"]
+        user_image = user["images"][0]["url"]
+        user_followers = user["followers"]["total"]
+        
+        description = f'''
+            [{username}]({user_url}) on Spotify
+            Followers: `{user_followers}`
+            '''
+        
+        return description, user_image
+        
 
     def format_top_artists(self, limit=20, offset=0, time_range="medium_term"):
+        # Get current user info
+        description, user_image = self.spotify_user_info()
+        
+        # Set embed attributes
+        formatted = {
+            "color": 0x07e380,
+            "title": f"Top Artists",
+            "description": description,
+            "thumbnail": user_image,
+            "fields": []
+        }
+        
+        # Set embed fields
         data = self.current_user_top_artists(
             limit=limit,
             offset=offset,
             time_range=self.alias_time_range(time_range)
         )
-        
-        formatted = {
-            "color": 0x07e380,
-            "title": f"Top Artists",
-            "fields": []
-        }
 
         for rank, item in enumerate(data["items"], 1):
             name = item["name"]
@@ -59,17 +81,24 @@ class SpotifyApp(spotipy.Spotify):
         return formatted
     
     def format_top_tracks(self, limit=20, offset=0, time_range="medium_term"):
+        # Get current user info
+        description, user_image = self.spotify_user_info()
+
+        # Set embed attributes
+        formatted = {
+            "color": 0x07e380,
+            "title": f"Top Tracks",
+            "description": description,
+            "thumbnail": user_image,
+            "fields": []
+        }   
+     
+        # Set embed fields
         data = self.current_user_top_tracks(
             limit=limit,
             offset=offset,
             time_range=self.alias_time_range(time_range)
         )
-
-        formatted = {
-            "color": 0x07e380,
-            "title": f"Top Tracks",
-            "fields": []
-        }
 
         for rank, item in enumerate(data["items"], 1):
             album_name = item["album"]["name"]
@@ -92,15 +121,20 @@ class SpotifyApp(spotipy.Spotify):
         return formatted
     
     def format_recent(self, limit=20):
-        data = self.current_user_recently_played(limit=limit)
-
-        EMOJI = ":musical_note:"
+        # Get current user info
+        description, user_image = self.spotify_user_info()
+        
+        # Set embed attributes
         formatted = {
             "color": 0x07e380,
-            "title": f"Recent played Tracks",
+            "title": f"Recently Played Tracks",
+            "description": description,
+            "thumbnail": user_image,
             "fields": []
-        }
+        }   
 
+        EMOJI = ":musical_note:"
+        data = self.current_user_recently_played(limit=limit)
         for item in data["items"]:
             song_name = item["track"]["name"]
             song_url = item["track"]["external_urls"]["spotify"]
