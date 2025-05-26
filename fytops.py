@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from discordapp import DiscordApp
-from spotifyapp import SpotifyAppOAuth, SpotifyApp
-from pagination import Pagination
+from spotifyapp import SpotifyApp
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
@@ -23,11 +22,7 @@ class FyTops(commands.Bot):
         self.setup_commands()
         
     def get_spotify_object(self):
-        manager = SpotifyAppOAuth().generate_auth_manager(
-            self.client_id, self.client_secret, self.redirect_uri
-        )
-        
-        return SpotifyApp(manager)
+        return SpotifyApp(self.client_id, self.client_secret, self.redirect_uri)
         
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
@@ -58,32 +53,14 @@ class FyTops(commands.Bot):
         @self.tree.command(
             name="artists", description="See your most listened artists", guild=GUILD_ID
         )
-        @app_commands.describe(
-            limit = "the number of entities to return (max 50)",
-            offset = "the index of the first entity to return",
-            time_range = "over what time frame are the stats computed (short, medium, long)"
-        )
-        async def top_artists(
-            interaction: discord.Interaction, limit: int = 20, 
-            offset: int = 0, time_range: str = 'm'
-        ):
-            """Get user's top listened artists
-                
-                Parameters:
-                    limit (int): the number of entities to return (max 50)
-                    offset (int): the index of the first entity to return
-                    time_range (str): Over what time frame are the stats computed
-                    Valid-values: short, medium, long
+        async def top_artists(interaction: discord.Interaction):
             """
-
-            # Request raw data from Spotify
-            raw_data = self.spotify_object.get_user_top_artists(
-                limit=limit, offset=offset, time_range=time_range
-            )
+            Get user's top listened artists
+            """
             
-            # Format data
+            # Request and format data from Spotify
             # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
-            formatted = SpotifyApp.format_top_artists(raw_data)
+            formatted = self.spotify_object.format_top_artists(limit=50)
             formatted["description"] = f"<@{interaction.user.id}>"
             
             # Convert to embed and create a pagination system
@@ -93,32 +70,14 @@ class FyTops(commands.Bot):
         @self.tree.command(
             name="tracks", description="See your most listened tracks", guild=GUILD_ID
         )
-        @app_commands.describe(
-            limit = "the number of entities to return (max 50)",
-            offset = "the index of the first entity to return",
-            time_range = "over what time frame are the stats computed (short, medium, long)"
-        )
-        async def top_tracks(
-            interaction: discord.Interaction, limit: int = 20, 
-            offset: int = 0, time_range: str = 'm'
-        ):
-            """Get user's top listened artists
-                
-                Parameters:
-                    limit (int): the number of entities to return (max 50)
-                    offset (int): the index of the first entity to return
-                    time_range (str): Over what time frame are the stats computed
-                    Valid-values: short, medium, long
+        async def top_tracks(interaction: discord.Interaction):
+            """
+            Get user's top listened artists
             """
             
-            # Request raw data from Spotify
-            raw_data = self.spotify_object.get_user_top_tracks(
-                limit=limit, offset=offset, time_range=time_range
-            )
-            
-            # Format data
+            # Request and format data from Spotify
             # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
-            formatted = SpotifyApp.format_top_tracks(raw_data)
+            formatted = self.spotify_object.format_top_tracks(limit=50)
             formatted["description"] = f"<@{interaction.user.id}>"
 
             # Convert to embed and create a pagination system
@@ -128,25 +87,14 @@ class FyTops(commands.Bot):
         @self.tree.command(
             name="recent", description="See your recent tracks", guild=GUILD_ID
         )
-        @app_commands.describe(
-            limit = "number of tracks (max 50)"
-        )
-        async def recent(
-            interaction: discord.Interaction, 
-            limit: int = 20
-        ):
-            """Get user's recently played tracks
-            
-                Parameters:
-                    - limit - the number of entities to return (max 50)
+        async def recent(interaction: discord.Interaction):
             """
-
-            # Request raw data from Spotify
-            raw_data = self.spotify_object.get_user_recently_played(limit=limit)
+            Get user's recently played tracks
+            """
             
-            # Format data
+            # Request and format data from Spotify
             # TODO: get user Spotify account info (name, avatar) to display in description and thumbnail 
-            formatted = SpotifyApp.format_recent(raw_data)
+            formatted = self.spotify_object.format_recent(limit=50)
             formatted["description"] = f"<@{interaction.user.id}>"
 
             # Convert to embed and create a pagination system

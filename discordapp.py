@@ -10,6 +10,7 @@ class DiscordApp():
         self.dict_to_embed()
 
     def dict_to_embed(self):
+        # TODO: Handle fields without pagination
         if "author" in self._dict:
             if "name" in self._dict["author"]:
                 self.embed.set_author(name=self._dict["author"]["name"])

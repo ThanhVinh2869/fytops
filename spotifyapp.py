@@ -2,68 +2,40 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import json
 import dateutil.parser as dp
-            
-class SpotifyAppOAuth:
-    @staticmethod
-    def generate_auth_manager(
-        client_id, client_secret, redirect_uri
+
+class SpotifyApp(spotipy.Spotify):
+    def __init__(
+        self, client_id, client_secret, redirect_uri
     ):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+        
+        self.set_auth_manager()
+        super().__init__(auth_manager=self.auth_manager)
+    
+    def set_auth_manager(self):
         scopes = [
             "user-top-read",
             "user-read-recently-played"
             ]
         
         auth_manager = SpotifyOAuth(
-            client_id=client_id,
-            client_secret=client_secret,
-            redirect_uri=redirect_uri,
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            redirect_uri=self.redirect_uri,
             scope=scopes
         )
         
-        return auth_manager
-        
-        # TODO: catch error
+        self.auth_manager = auth_manager
 
-class SpotifyApp:
-    def __init__(
-        self, oauth_manager=None
-    ):
-        self.oauth_manager = oauth_manager
-        self.sp_object = spotipy.Spotify(auth_manager=self.oauth_manager)
-    
-    def get_user_top_artists(
-        self, limit=20, offset=0, time_range="medium_term"
-    ):
-        try:
-            time_range = self.standardize_time_range(time_range)
-        except ValueError:
-            print("Invalid term")
-            return None
-        
-        return self.sp_object.current_user_top_artists(
-            limit=limit, offset=offset, time_range=time_range
-        )
-    
-    def get_user_top_tracks(
-        self, limit=20, offset=0, time_range="medium_term"
-    ):
-        try:
-            time_range = self.standardize_time_range(time_range)
-        except ValueError:
-            print("Invalid term")
-            return None
-        
-        return self.sp_object.current_user_top_tracks(
-            limit=limit, offset=offset, time_range=time_range
+    def format_top_artists(self, limit=20, offset=0, time_range="medium_term"):
+        data = self.current_user_top_artists(
+            limit=limit,
+            offset=offset,
+            time_range=self.alias_time_range(time_range)
         )
         
-    def get_user_recently_played(
-        self, limit=20
-    ):
-        return self.sp_object.current_user_recently_played(limit=limit)
-    
-    @staticmethod
-    def format_top_artists(data: dict):
         formatted = {
             "color": 0x07e380,
             "title": f"Top Artists",
@@ -86,8 +58,13 @@ class SpotifyApp:
             
         return formatted
     
-    @staticmethod
-    def format_top_tracks(data: dict):
+    def format_top_tracks(self, limit=20, offset=0, time_range="medium_term"):
+        data = self.current_user_top_tracks(
+            limit=limit,
+            offset=offset,
+            time_range=self.alias_time_range(time_range)
+        )
+
         formatted = {
             "color": 0x07e380,
             "title": f"Top Tracks",
@@ -114,8 +91,10 @@ class SpotifyApp:
 
         return formatted
     
-    @staticmethod
-    def format_recent(data: dict):
+    def format_recent(self, limit=20):
+        data = self.current_user_recently_played(limit=limit)
+
+        EMOJI = ":musical_note:"
         formatted = {
             "color": 0x07e380,
             "title": f"Recent played Tracks",
@@ -132,7 +111,7 @@ class SpotifyApp:
             artists = ", ".join([artist["name"] for artist in item["track"]["artists"]])
 
             field = {
-                "name": f"{song_name} - {artists}",
+                "name": f"{EMOJI} {song_name} - {artists}",
                 "value": f"Played <t:{unix_time}:R> (<t:{unix_time}:f>) - [url]({song_url})",
                 "inline": False
             }
@@ -153,7 +132,7 @@ class SpotifyApp:
             return f"{rank}."
     
     @staticmethod
-    def standardize_time_range(range: str):
+    def alias_time_range(range: str):
         if not range:
             raise ValueError
         
