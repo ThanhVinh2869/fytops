@@ -11,12 +11,12 @@ class DiscordApp():
 
     def dict_to_embed(self):
         # TODO: Handle fields without pagination
-        if "author" in self._dict:
-            if "name" in self._dict["author"]:
-                    self.embed.set_author(name = self._dict["author"]["name"],
-                    url = self._dict["author"].get("url", None),
-                    icon_url = self._dict["author"].get("icon_url", None)
-                )
+        if "author" in self._dict and "name" in self._dict["author"]:
+            self.embed.set_author(
+                name = self._dict["author"]["name"],
+                url = self._dict["author"].get("url", None),
+                icon_url = self._dict["author"].get("icon_url", None)
+            )
         
         self.embed.color = self._dict.get("color", discord.Color.green())
         self.embed.title = self._dict.get("title", None)
