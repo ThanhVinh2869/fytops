@@ -5,16 +5,19 @@ import dateutil.parser as dp
 
 class SpotifyApp(spotipy.Spotify):
     def __init__(
-        self, client_id, client_secret, redirect_uri
+        self, user_id: int, client_id, client_secret, redirect_uri
     ):
+        self.user_id = user_id
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         
-        self.set_auth_manager()
+        self.set_auth_manager(self.user_id)
         super().__init__(auth_manager=self.auth_manager)
     
-    def set_auth_manager(self):
+    def set_auth_manager(self, user_id: int = None):
+        cache_path = f"user_tokens/{user_id}.cache"
+        
         scopes = [
             "user-top-read",
             "user-read-recently-played"
@@ -24,16 +27,19 @@ class SpotifyApp(spotipy.Spotify):
             client_id=self.client_id,
             client_secret=self.client_secret,
             redirect_uri=self.redirect_uri,
-            scope=scopes
+            scope=scopes,
+            cache_path=cache_path
         )
         
         self.auth_manager = auth_manager
         
     def spotify_user_info(self):
+        null_image = "https://media.discordapp.net/attachments/1374160501877248113/1377302749628076062/null_avatar.png?ex=683878a4&is=68372724&hm=91a9d8e64bcdd49ae6a57b5684bd8ea47c84d910b5e961ba08a6c6eecd7b80f7&=&format=webp&quality=lossless&width=1260&height=1260"
+        
         user = self.me()
         username = user["display_name"]
         user_url = user["external_urls"]["spotify"]
-        user_image = user["images"][0]["url"]
+        user_image = null_image if not user["images"] else user["images"][0]["url"]
         user_followers = user["followers"]["total"]
         
         description = f'''

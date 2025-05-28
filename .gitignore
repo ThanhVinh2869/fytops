@@ -1,5 +1,6 @@
 .env
-.cache
+user_tokens/
+format_test/
 __pycache__/
 
 main.py

@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 from discordapp import DiscordApp
 from spotifyapp import SpotifyApp
 
@@ -13,7 +12,6 @@ class FyTops(commands.Bot):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
-        self.spotify_object = self.get_spotify_object()
         
         intents = discord.Intents.default()
         intents.message_content = True
@@ -21,8 +19,8 @@ class FyTops(commands.Bot):
         
         self.setup_commands()
         
-    def get_spotify_object(self):
-        return SpotifyApp(self.client_id, self.client_secret, self.redirect_uri)
+    def get_user_spotify_object(self, interaction: discord.Interaction):
+        return SpotifyApp(interaction.user.id, self.client_id, self.client_secret, self.redirect_uri)
         
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
@@ -50,59 +48,63 @@ class FyTops(commands.Bot):
         Set up slash commands
         '''
         
-        @self.tree.command(
-            name="artists", description="See your most listened artists", guild=GUILD_ID
-        )
+        @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
         async def top_artists(interaction: discord.Interaction):
             """
             Get user's top listened artists
             """
             
             # Request and format data from Spotify
-            formatted = self.spotify_object.format_top_artists(limit=50)
-            formatted["author"] = {
-                "name": interaction.user.name,
-                "icon_url": f"{interaction.user.avatar.url}"
-            }
+            object = self.get_user_spotify_object(interaction)
+            formatted = object.format_top_artists(limit=50)
+            formatted["author"] = self.get_user_info(interaction)
             
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
-            await data.fields_pagination(interaction=interaction, L=10)
+            if not data.fields: # handle null data
+                await interaction.response.send_message(content="You have no records", embed=data.embed)
+            else:
+                await data.fields_pagination(interaction=interaction, L=10)
 
-        @self.tree.command(
-            name="tracks", description="See your most listened tracks", guild=GUILD_ID
-        )
+        @self.tree.command(name="tracks", description="See your most listened tracks", guild=GUILD_ID)
         async def top_tracks(interaction: discord.Interaction):
             """
             Get user's top listened artists
             """
             
             # Request and format data from Spotify
-            formatted = self.spotify_object.format_top_tracks(limit=50)
-            formatted["author"] = {
-                "name": interaction.user.name,
-                "icon_url": f"{interaction.user.avatar.url}"
-            }
+            object = self.get_user_spotify_object(interaction)
+            formatted = object.format_top_tracks(limit=50)
+            formatted["author"] = self.get_user_info(interaction)
 
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
-            await data.fields_pagination(interaction=interaction, L=10)
+            if not data.fields: # handle null data
+                await interaction.response.send_message(content="You have no records", embed=data.embed)
+            else:
+                await data.fields_pagination(interaction=interaction, L=10)
 
-        @self.tree.command(
-            name="recent", description="See your recent tracks", guild=GUILD_ID
-        )
+        @self.tree.command(name="recent", description="See your recent tracks", guild=GUILD_ID)
         async def recent(interaction: discord.Interaction):
             """
             Get user's recently played tracks
             """
             
             # Request and format data from Spotify
-            formatted = self.spotify_object.format_recent(limit=50)
-            formatted["author"] = {
-                "name": interaction.user.name,
-                "icon_url": f"{interaction.user.avatar.url}"
-            }
+            object = self.get_user_spotify_object(interaction)
+            formatted = object.format_recent(limit=50)
+            formatted["author"] = self.get_user_info(interaction)
 
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
-            await data.fields_pagination(interaction=interaction, L=10)
+            if not data.fields: # handle null data
+                await interaction.response.send_message(content="You have no records", embed=data.embed)
+            else:
+                await data.fields_pagination(interaction=interaction, L=10)
+    
+    @staticmethod
+    def get_user_info(interaction: discord.Interaction):
+        name = interaction.user.name
+        icon_url = interaction.user.display_avatar.url
+        
+        return {"name": name, "icon_url": icon_url}
