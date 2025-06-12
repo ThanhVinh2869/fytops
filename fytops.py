@@ -19,7 +19,7 @@ class FyTops(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
         
-        self.setup_commands()
+        self.__setup_commands()
                
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
@@ -39,7 +39,7 @@ class FyTops(commands.Bot):
             latency = self.latency * 1000  # Convert to milliseconds
             await message.channel.send(f'Pong! Latency: **{latency:.2f}ms**')
             
-    def setup_commands(self):
+    def __setup_commands(self):
         '''
         Set up slash commands
         '''
