@@ -1,7 +1,9 @@
 import discord
 from discord.ext import commands
 from discordapp import DiscordApp
-from spotifyapp import SpotifyApp
+from spotifyapp import SpotifyAppOAuth, SpotifyApp
+import spotipy
+import os
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
@@ -18,10 +20,7 @@ class FyTops(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
         
         self.setup_commands()
-        
-    def get_user_spotify_object(self, interaction: discord.Interaction):
-        return SpotifyApp(interaction.user.id, self.client_id, self.client_secret, self.redirect_uri)
-        
+               
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
 
@@ -35,9 +34,6 @@ class FyTops(commands.Bot):
     async def on_message(self, message):
         if message.author == self.user:
             return 
-        
-        if message.content.startswith("hi"):
-            await message.channel.send(f"Hi there! <@{message.author.id}>!")
         
         elif message.content == "!ping":
             latency = self.latency * 1000  # Convert to milliseconds
@@ -53,9 +49,19 @@ class FyTops(commands.Bot):
             """
             Get user's top listened artists
             """
+            user_id = interaction.user.id
+
+            # Check user authentication
+            path = SpotifyAppOAuth.get_user_cache_path(user_id)
+            notLogin = self.check_authentication(path)
+            if notLogin:
+                await interaction.response.send_message(embed=notLogin)
+                return
             
             # Request and format data from Spotify
-            object = self.get_user_spotify_object(interaction)
+            auth_manager = SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
+            object = SpotifyApp(auth_manager=auth_manager)
+            
             formatted = object.format_top_artists(limit=50)
             formatted["author"] = self.get_user_info(interaction)
             
@@ -71,9 +77,19 @@ class FyTops(commands.Bot):
             """
             Get user's top listened artists
             """
+            user_id = interaction.user.id
+
+            # Check user authentication
+            path = SpotifyAppOAuth.get_user_cache_path(user_id)
+            notLogin = self.check_authentication(path)
+            if notLogin:
+                await interaction.response.send_message(embed=notLogin)
+                return
             
             # Request and format data from Spotify
-            object = self.get_user_spotify_object(interaction)
+            auth_manager = SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
+            object = SpotifyApp(auth_manager=auth_manager)
+            
             formatted = object.format_top_tracks(limit=50)
             formatted["author"] = self.get_user_info(interaction)
 
@@ -89,9 +105,19 @@ class FyTops(commands.Bot):
             """
             Get user's recently played tracks
             """
+            user_id = interaction.user.id
+
+            # Check user authentication
+            path = SpotifyAppOAuth.get_user_cache_path(user_id)
+            notLogin = self.check_authentication(path)
+            if notLogin:
+                await interaction.response.send_message(embed=notLogin)
+                return
             
             # Request and format data from Spotify
-            object = self.get_user_spotify_object(interaction)
+            auth_manager = SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
+            object = SpotifyApp(auth_manager=auth_manager)
+            
             formatted = object.format_recent(limit=50)
             formatted["author"] = self.get_user_info(interaction)
 
@@ -101,6 +127,45 @@ class FyTops(commands.Bot):
                 await interaction.response.send_message(content="You have no records", embed=data.embed)
             else:
                 await data.fields_pagination(interaction=interaction, L=10)
+        
+        @self.tree.command(name="login", description="Log in your Spotify account", guild=GUILD_ID)
+        async def login(interaction: discord.Interaction):
+            await interaction.response.send_message(content="In development")
+            
+        # TODO: display Spotify account info
+        @self.tree.command(name="logout", description="Log out your current Spotify account", guild=GUILD_ID)
+        async def logout(interaction: discord.Interaction):
+            user_id = interaction.user.id
+            file_path = SpotifyAppOAuth.get_user_cache_path(user_id)
+            
+            try:
+                os.remove(file_path)
+                print(f"Discord user {interaction.user.name} logged out ")
+            except:
+                print(f"User token {user_id} not found")
+            
+            embed = discord.Embed(
+                color=discord.Color.green(),
+                description="✅ You have logged out of your Spotify account",
+            )
+
+            await interaction.response.send_message(embed=embed)
+
+        @self.tree.command(name="help", description="How to use FyTops", guild=GUILD_ID)
+        async def help(interaction: discord.Interaction):
+            await interaction.response.send_message(content="In development")
+            
+    def check_authentication(self, path):
+        # TODO: What happen if token expired and user revoked authentication?
+        embed = None
+        if not os.path.exists(path):
+            embed = discord.Embed(
+                color=discord.Color.red(),
+                title="❌ You haven't logged in to your Spotify account!",
+                description="Use `/login` to authenticate FyTops to your Spotify account"
+            )
+
+        return embed 
     
     @staticmethod
     def get_user_info(interaction: discord.Interaction):
