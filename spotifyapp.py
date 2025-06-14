@@ -17,7 +17,7 @@ class SpotifyAppOAuth(SpotifyOAuth):
             client_secret=client_secret,
             redirect_uri=redirect_uri,
             scope=scopes,
-            cache_path=cache_path
+            cache_path=cache_path,
         )
         
     @staticmethod
@@ -32,12 +32,8 @@ class SpotifyApp(Spotify):
         username = user["display_name"]
         user_url = user["external_urls"]["spotify"]
         user_image = null_image if not user["images"] else user["images"][0]["url"]
-        user_followers = user["followers"]["total"]
         
-        description = f'''
-            [{username}]({user_url}) on Spotify
-            Followers: `{user_followers}`
-            '''
+        description = f"[{username}]({user_url}) on Spotify"
         
         return description, user_image
 

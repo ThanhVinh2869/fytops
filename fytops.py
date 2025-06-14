@@ -4,6 +4,7 @@ from discordapp import DiscordApp
 from spotifyapp import SpotifyAppOAuth, SpotifyApp
 import spotipy
 import os
+from urllib.parse import urlparse, parse_qs
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
@@ -52,14 +53,13 @@ class FyTops(commands.Bot):
             user_id = interaction.user.id
 
             # Check user authentication
-            path = SpotifyAppOAuth.get_user_cache_path(user_id)
-            notLogin = self.check_authentication(path)
+            notLogin = self.check_authentication(user_id)
             if notLogin:
                 await interaction.response.send_message(embed=notLogin)
                 return
             
             # Request and format data from Spotify
-            auth_manager = SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
+            auth_manager = self.__create_auth_manager(user_id)
             object = SpotifyApp(auth_manager=auth_manager)
             
             formatted = object.format_top_artists(limit=50)
@@ -80,14 +80,13 @@ class FyTops(commands.Bot):
             user_id = interaction.user.id
 
             # Check user authentication
-            path = SpotifyAppOAuth.get_user_cache_path(user_id)
-            notLogin = self.check_authentication(path)
+            notLogin = self.check_authentication(user_id)
             if notLogin:
                 await interaction.response.send_message(embed=notLogin)
                 return
             
             # Request and format data from Spotify
-            auth_manager = SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
+            auth_manager = self.__create_auth_manager(user_id)
             object = SpotifyApp(auth_manager=auth_manager)
             
             formatted = object.format_top_tracks(limit=50)
@@ -108,14 +107,13 @@ class FyTops(commands.Bot):
             user_id = interaction.user.id
 
             # Check user authentication
-            path = SpotifyAppOAuth.get_user_cache_path(user_id)
-            notLogin = self.check_authentication(path)
+            notLogin = self.check_authentication(user_id)
             if notLogin:
                 await interaction.response.send_message(embed=notLogin)
                 return
             
             # Request and format data from Spotify
-            auth_manager = SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
+            auth_manager = self.__create_auth_manager(user_id)
             object = SpotifyApp(auth_manager=auth_manager)
             
             formatted = object.format_recent(limit=50)
@@ -130,24 +128,81 @@ class FyTops(commands.Bot):
         
         @self.tree.command(name="login", description="Log in your Spotify account", guild=GUILD_ID)
         async def login(interaction: discord.Interaction):
-            await interaction.response.send_message(content="In development")
+            user_id = interaction.user.id
+
+            embed = discord.Embed(
+                color=discord.Color.green(),
+                description="✅ You have already logged in!"
+            )
+            
+            notLogin = self.check_authentication(user_id)
+            if notLogin:
+                auth_manager = self.__create_auth_manager(user_id)
+                auth_url = auth_manager.get_authorize_url()
+                embed = discord.Embed(
+                    color=discord.Color.yellow(),
+                    description=f"Click [here]({auth_url}) to link your Spotify account with the current Discord account"
+                )
+
+            await interaction.response.send_message(embed=embed)
+
+        @self.tree.command(name="auth", description="Provide authentication code", guild=GUILD_ID)
+        async def auth(interaction: discord.Interaction, code: str):
+            user_id = interaction.user.id
+            auth_manager = self.__create_auth_manager(user_id)
+            
+            notLogin = self.check_authentication(user_id)
+            if notLogin:
+                # Retrieve the auth code
+                try:
+                    parsed_url = urlparse(code)
+                    query_params = parse_qs(parsed_url.query)
+                    auth_code = query_params.get('code')[0]
+                except: # if failed to parse the query then try using the original content
+                    auth_code = code
+                
+                # Exchange auth code for token
+                try:
+                    auth_manager.get_access_token(code=auth_code, as_dict=False)
+                except spotipy.exceptions.SpotifyOauthError as e:
+                    print(f"Token exchange error: {e}")
+                    embed = discord.Embed(
+                        color=discord.Color.red(),
+                        description="❌ Invalid authorization code, please try again!"
+                    )
+                    
+                    await interaction.response.send_message(embed=embed)
+                    return
+
+            # Get Spotify account info
+            object = SpotifyApp(auth_manager=auth_manager)
+            description, icon_url = object.spotify_user_info()
+              
+            embed = discord.Embed(
+                color=discord.Color.green(),
+                title="✅ You have successfully logged in as",
+                description=description,
+            )
+            
+            embed.set_thumbnail(url=icon_url)
+            
+            await interaction.response.send_message(embed=embed)
             
         # TODO: display Spotify account info
         @self.tree.command(name="logout", description="Log out your current Spotify account", guild=GUILD_ID)
         async def logout(interaction: discord.Interaction):
             user_id = interaction.user.id
-            file_path = SpotifyAppOAuth.get_user_cache_path(user_id)
-            
-            try:
-                os.remove(file_path)
-                print(f"Discord user {interaction.user.name} logged out ")
-            except:
-                print(f"User token {user_id} not found")
-            
+                        
             embed = discord.Embed(
                 color=discord.Color.green(),
                 description="✅ You have logged out of your Spotify account",
             )
+            
+            try:
+                os.remove(SpotifyAppOAuth.get_user_cache_path(user_id))
+                print(f"Discord user {interaction.user.name} logged out ")
+            except:
+                print(f"User token {user_id} not found, sent default logout message")
 
             await interaction.response.send_message(embed=embed)
 
@@ -155,17 +210,31 @@ class FyTops(commands.Bot):
         async def help(interaction: discord.Interaction):
             await interaction.response.send_message(content="In development")
             
-    def check_authentication(self, path):
-        # TODO: What happen if token expired and user revoked authentication?
-        embed = None
-        if not os.path.exists(path):
-            embed = discord.Embed(
-                color=discord.Color.red(),
-                title="❌ You haven't logged in to your Spotify account!",
-                description="Use `/login` to authenticate FyTops to your Spotify account"
-            )
+    def check_authentication(self, user_id):
+        path = SpotifyAppOAuth.get_user_cache_path(user_id)
 
-        return embed 
+        embed = discord.Embed(
+            color=discord.Color.red(),
+            title="❌ You haven't logged in to your Spotify account!",
+            description="Use `/login` to authenticate FyTops to your Spotify account"
+        )
+        
+        if os.path.exists(path):
+            try:
+                auth_manager = self.__create_auth_manager(user_id)
+                object = SpotifyApp(auth_manager=auth_manager)
+                object.me()
+                embed = None # clear error message if token is valid
+            # Refresh token invalid because user revoked authentication
+            except spotipy.SpotifyOauthError as e:
+                print(f"Authentication Error: {e}")
+                os.remove(path)
+                print(f"Removed invalid token {user_id}")
+
+        return embed
+    
+    def __create_auth_manager(self, user_id):
+        return SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
     
     @staticmethod
     def get_user_info(interaction: discord.Interaction):
