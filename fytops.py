@@ -9,9 +9,7 @@ from urllib.parse import urlparse, parse_qs
 GUILD_ID = discord.Object(id=1374160501390446625)
 
 class FyTops(commands.Bot):
-    def __init__(
-        self, client_id, client_secret, redirect_uri
-    ):
+    def __init__(self, client_id, client_secret, redirect_uri):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
@@ -44,12 +42,7 @@ class FyTops(commands.Bot):
         '''
         Set up slash commands
         '''
-        
-        @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
-        async def top_artists(interaction: discord.Interaction):
-            """
-            Get user's top listened artists
-            """
+        async def __command_call(command, interaction, time_range):
             user_id = interaction.user.id
 
             # Check user authentication
@@ -62,69 +55,44 @@ class FyTops(commands.Bot):
             auth_manager = self.__create_auth_manager(user_id)
             object = SpotifyApp(auth_manager=auth_manager)
             
-            formatted = object.format_top_artists(limit=50)
+            commands_map = {
+                "artists": object.format_top_artists,
+                "tracks": object.format_top_tracks,
+                "recent": object.format_recent
+            }
+            
+            try:
+                formatted = commands_map[command](limit=50, time_range=time_range)
+            except:
+                formatted = commands_map[command](limit=50)
             formatted["author"] = self.get_user_info(interaction)
             
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
-            if not data.fields: # handle null data
-                await interaction.response.send_message(content="You have no records", embed=data.embed)
-            else:
-                await data.fields_pagination(interaction=interaction, L=10)
+            await data.fields_pagination(interaction=interaction, L=10)
+
+        @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
+        @discord.app_commands.describe(time_range="Over what time frame the data are computed")
+        async def top_artists(interaction: discord.Interaction, time_range: str="medium_term"):
+            """
+            Get user's top listened artists
+            """
+            await __command_call("artists", interaction, time_range)
 
         @self.tree.command(name="tracks", description="See your most listened tracks", guild=GUILD_ID)
-        async def top_tracks(interaction: discord.Interaction):
+        @discord.app_commands.describe(time_range="Over what time frame the data are computed")
+        async def top_tracks(interaction: discord.Interaction, time_range: str="medium_term"):
             """
-            Get user's top listened artists
+            Get user's top listened tracks
             """
-            user_id = interaction.user.id
-
-            # Check user authentication
-            notLogin = self.check_authentication(user_id)
-            if notLogin:
-                await interaction.response.send_message(embed=notLogin)
-                return
-            
-            # Request and format data from Spotify
-            auth_manager = self.__create_auth_manager(user_id)
-            object = SpotifyApp(auth_manager=auth_manager)
-            
-            formatted = object.format_top_tracks(limit=50)
-            formatted["author"] = self.get_user_info(interaction)
-
-            # Convert to embed and create a pagination system
-            data = DiscordApp(formatted)
-            if not data.fields: # handle null data
-                await interaction.response.send_message(content="You have no records", embed=data.embed)
-            else:
-                await data.fields_pagination(interaction=interaction, L=10)
+            await __command_call("tracks", interaction, time_range)
 
         @self.tree.command(name="recent", description="See your recent tracks", guild=GUILD_ID)
         async def recent(interaction: discord.Interaction):
             """
             Get user's recently played tracks
             """
-            user_id = interaction.user.id
-
-            # Check user authentication
-            notLogin = self.check_authentication(user_id)
-            if notLogin:
-                await interaction.response.send_message(embed=notLogin)
-                return
-            
-            # Request and format data from Spotify
-            auth_manager = self.__create_auth_manager(user_id)
-            object = SpotifyApp(auth_manager=auth_manager)
-            
-            formatted = object.format_recent(limit=50)
-            formatted["author"] = self.get_user_info(interaction)
-
-            # Convert to embed and create a pagination system
-            data = DiscordApp(formatted)
-            if not data.fields: # handle null data
-                await interaction.response.send_message(content="You have no records", embed=data.embed)
-            else:
-                await data.fields_pagination(interaction=interaction, L=10)
+            await __command_call("recent", interaction, "medium_term")      
         
         @self.tree.command(name="login", description="Log in your Spotify account", guild=GUILD_ID)
         async def login(interaction: discord.Interaction):
@@ -144,7 +112,7 @@ class FyTops(commands.Bot):
                     description=f"Click [here]({auth_url}) to link your Spotify account with the current Discord account"
                 )
 
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         @self.tree.command(name="auth", description="Provide authentication code", guild=GUILD_ID)
         async def auth(interaction: discord.Interaction, code: str):
@@ -171,7 +139,7 @@ class FyTops(commands.Bot):
                         description="❌ Invalid authorization code, please try again!"
                     )
                     
-                    await interaction.response.send_message(embed=embed)
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
                     return
 
             # Get Spotify account info
@@ -186,7 +154,7 @@ class FyTops(commands.Bot):
             
             embed.set_thumbnail(url=icon_url)
             
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             
         # TODO: display Spotify account info
         @self.tree.command(name="logout", description="Log out your current Spotify account", guild=GUILD_ID)
@@ -200,11 +168,11 @@ class FyTops(commands.Bot):
             
             try:
                 os.remove(SpotifyAppOAuth.get_user_cache_path(user_id))
-                print(f"Discord user {interaction.user.name} logged out ")
+                print(f"Discord user {interaction.user.name} logged out")
             except:
                 print(f"User token {user_id} not found, sent default logout message")
 
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         @self.tree.command(name="help", description="How to use FyTops", guild=GUILD_ID)
         async def help(interaction: discord.Interaction):

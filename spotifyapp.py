@@ -159,21 +159,15 @@ class SpotifyApp(Spotify):
             return f"{rank}."
     
     @staticmethod
-    def alias_time_range(range: str):
-        if not range:
-            raise ValueError
+    def alias_time_range(range: str):       
+        if range in ["s", "small", "small_term", "30", "4", "1"]:
+            return "short_term"
         
-        if range in ["s", "small", "small_term"]:
-            return "small_term"
-
-        elif range in ["m", "medium", "medium_term"]:
-            return "medium_term"
-
-        elif range in ["l", "long", "long_term"]:
+        elif range in ["l", "long", "long_term", "365", "52", "12"]:
             return "long_term"
         
         else:
-            raise ValueError
+            return "medium_term"
     
     @staticmethod
     def iso_to_unix(time):

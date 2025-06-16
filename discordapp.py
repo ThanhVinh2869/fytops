@@ -33,6 +33,9 @@ class DiscordApp():
         #         self.embed.set_footer(icon_url=self._dict["footer"]["icon_url"])
         
     async def fields_pagination(self, interaction: discord.Interaction, L: int = 10):
+        if not self.fields:
+            await interaction.response.send_message(content="You have no records", embed=self.embed)
+            
         async def get_page(page: int):
             # Clear current fields
             self.embed.clear_fields()
