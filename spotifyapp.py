@@ -2,6 +2,7 @@ from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 import json
 import dateutil.parser as dp
+from datetime import datetime 
 
 class SpotifyAppOAuth(SpotifyOAuth):
     def __init__(self, user_id: int, client_id, client_secret, redirect_uri):
@@ -25,36 +26,40 @@ class SpotifyAppOAuth(SpotifyOAuth):
         return f"user_tokens/{user_id}.cache"
         
 class SpotifyApp(Spotify):
-    def spotify_user_info(self):
+    def __init__(self, auth_manager):
+        super().__init__(auth_manager=auth_manager)
+        self.user_info = {}
+        self.__set_spotify_user_info()
+
+    def __set_spotify_user_info(self):
         null_image = "https://media.discordapp.net/attachments/1374160501877248113/1377302749628076062/null_avatar.png?ex=683878a4&is=68372724&hm=91a9d8e64bcdd49ae6a57b5684bd8ea47c84d910b5e961ba08a6c6eecd7b80f7&=&format=webp&quality=lossless&width=1260&height=1260"
-        
         user = self.me()
+        
         username = user["display_name"]
         user_url = user["external_urls"]["spotify"]
         user_image = null_image if not user["images"] else user["images"][0]["url"]
         
-        description = f"[{username}]({user_url}) on Spotify"
+        now = datetime.now().isoformat()
+        now = self.iso_to_unix(now)
         
-        return description, user_image
+        description = f"[{username}]({user_url}) on Spotify\nData generated on <t:{now}:f>\n\u200b"
+        temp = {"description": description, "thumbnail": user_image}
+        
+        self.user_info.update(temp)
 
     def format_top_artists(self, limit=20, offset=0, time_range="medium_term"):
-        # Get current user info
-        description, user_image = self.spotify_user_info()
+        time_range = self.alias_time_range(time_range)
         
         # Set embed attributes
-        formatted = {
-            "color": 0x07e380,
-            "title": f"Top Artists",
-            "description": description,
-            "thumbnail": user_image,
-            "fields": []
+        temp = {
+            "color": 0x07e380, "fields": [],
+            "title": self.time_range_definition("Top Artists", time_range)
         }
         
         # Set embed fields
         data = self.current_user_top_artists(
-            limit=limit,
-            offset=offset,
-            time_range=self.alias_time_range(time_range)
+            limit=limit, offset=offset,
+            time_range=time_range
         )
 
         for rank, item in enumerate(data["items"], 1):
@@ -65,32 +70,27 @@ class SpotifyApp(Spotify):
             # Format field
             field = {
                 "name": f"{SpotifyApp.rank_emojify(rank)} {name}",
-                "value": f"[page]({url}) - {followers} followers",
+                "value": f"[Artist on Spotify]({url}) with {followers:,} followers",
                 "inline": False
             }      
 
-            formatted["fields"].append(field)
+            temp["fields"].append(field)
             
-        return formatted
+        return self.user_info | temp
     
     def format_top_tracks(self, limit=20, offset=0, time_range="medium_term"):
-        # Get current user info
-        description, user_image = self.spotify_user_info()
-
+        time_range=self.alias_time_range(time_range)
+        
         # Set embed attributes
-        formatted = {
-            "color": 0x07e380,
-            "title": f"Top Tracks",
-            "description": description,
-            "thumbnail": user_image,
-            "fields": []
+        temp = {
+            "color": 0x07e380, "fields": [],
+            "title": self.time_range_definition("Top Tracks", time_range)
         }   
      
         # Set embed fields
         data = self.current_user_top_tracks(
-            limit=limit,
-            offset=offset,
-            time_range=self.alias_time_range(time_range)
+            limit=limit, offset=offset,
+            time_range=time_range
         )
 
         for rank, item in enumerate(data["items"], 1):
@@ -105,47 +105,41 @@ class SpotifyApp(Spotify):
             # Format field
             field = {
                 "name": f"{SpotifyApp.rank_emojify(rank)} {song_name} - {artists}",
-                "value": f"[page]({song_url}) - from album [{album_name}]({album_url})",
+                "value": f"[Track on Spotify]({song_url}) from album [{album_name}]({album_url})",
                 "inline": False
             }
             
-            formatted["fields"].append(field)
+            temp["fields"].append(field)
 
-        return formatted
+        return self.user_info | temp
     
     def format_recent(self, limit=20):
-        # Get current user info
-        description, user_image = self.spotify_user_info()
-        
         # Set embed attributes
-        formatted = {
-            "color": 0x07e380,
-            "title": f"Recently Played Tracks",
-            "description": description,
-            "thumbnail": user_image,
-            "fields": []
+        temp = {
+            "color": 0x07e380, "fields": [],
+            "title": self.time_range_definition("Recently played Tracks")
         }   
 
-        EMOJI = ":musical_note:"
+        EMOJI = ":musical_notes:"
         data = self.current_user_recently_played(limit=limit)
         for item in data["items"]:
             song_name = item["track"]["name"]
             song_url = item["track"]["external_urls"]["spotify"]
             
             iso_time = item["played_at"]
-            unix_time = round(SpotifyApp.iso_to_unix(iso_time))
+            unix_time = self.iso_to_unix(iso_time)
             
             artists = ", ".join([artist["name"] for artist in item["track"]["artists"]])
 
             field = {
                 "name": f"{EMOJI} {song_name} - {artists}",
-                "value": f"Played <t:{unix_time}:R> (<t:{unix_time}:f>) - [url]({song_url})",
+                "value": f"[Track on Spotify]({song_url})\nPlayed <t:{unix_time}:R> (<t:{unix_time}:f>)",
                 "inline": False
             }
             
-            formatted["fields"].append(field)
+            temp["fields"].append(field)
         
-        return formatted
+        return self.user_info | temp
     
     @staticmethod
     def rank_emojify(rank: int):
@@ -170,8 +164,23 @@ class SpotifyApp(Spotify):
             return "medium_term"
     
     @staticmethod
+    def time_range_definition(data: str, range: str=None):
+        range_mapping = {
+            "short_term": "30 days",
+            "medium_term": "6 months",
+            "long_term": "12 months"
+        }
+        
+        if not range:
+            string = f"Your **{data}**"
+        else:
+            string = f"Your **{data}** in the last  `{range_mapping[range]}`"
+        
+        return string
+    
+    @staticmethod
     def iso_to_unix(time):
-        return dp.parse(time).timestamp()
+        return round(dp.parse(time).timestamp())
     
     @staticmethod
     def dict_to_json(
