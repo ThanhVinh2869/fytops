@@ -51,7 +51,7 @@ class SpotifyApp(Spotify):
         time_range = self.alias_time_range(time_range)
         
         # Set embed attributes
-        temp = {
+        artists = {
             "color": 0x07e380, "fields": [],
             "title": self.time_range_definition("Top Artists", time_range)
         }
@@ -69,20 +69,20 @@ class SpotifyApp(Spotify):
             
             # Format field
             field = {
-                "name": f"{SpotifyApp.rank_emojify(rank)} {name}",
+                "name": f"{self.rank_emojify(rank)} {name}",
                 "value": f"[Artist on Spotify]({url}) with {followers:,} followers",
                 "inline": False
             }      
 
-            temp["fields"].append(field)
+            artists["fields"].append(field)
             
-        return self.user_info | temp
+        return self.user_info | artists
     
     def format_top_tracks(self, limit=20, offset=0, time_range="medium_term"):
         time_range=self.alias_time_range(time_range)
         
         # Set embed attributes
-        temp = {
+        tracks = {
             "color": 0x07e380, "fields": [],
             "title": self.time_range_definition("Top Tracks", time_range)
         }   
@@ -104,18 +104,18 @@ class SpotifyApp(Spotify):
             
             # Format field
             field = {
-                "name": f"{SpotifyApp.rank_emojify(rank)} {song_name} - {artists}",
+                "name": f"{self.rank_emojify(rank)} {song_name} - {artists}",
                 "value": f"[Track on Spotify]({song_url}) from album [{album_name}]({album_url})",
                 "inline": False
             }
             
-            temp["fields"].append(field)
+            tracks["fields"].append(field)
 
-        return self.user_info | temp
+        return self.user_info | tracks
     
     def format_recent(self, limit=20):
         # Set embed attributes
-        temp = {
+        recent = {
             "color": 0x07e380, "fields": [],
             "title": self.time_range_definition("Recently played Tracks")
         }   
@@ -137,9 +137,9 @@ class SpotifyApp(Spotify):
                 "inline": False
             }
             
-            temp["fields"].append(field)
+            recent["fields"].append(field)
         
-        return self.user_info | temp
+        return self.user_info | recent
     
     @staticmethod
     def rank_emojify(rank: int):

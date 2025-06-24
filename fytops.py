@@ -65,7 +65,7 @@ class FyTops(commands.Bot):
                 formatted = commands_map[command](limit=50, time_range=time_range)
             except:
                 formatted = commands_map[command](limit=50)
-            formatted["author"] = self.get_user_info(interaction)
+            formatted["author"] = self.get_discord_user(interaction)
             
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
@@ -205,7 +205,7 @@ class FyTops(commands.Bot):
         return SpotifyAppOAuth(user_id, self.client_id, self.client_secret, self.redirect_uri)
     
     @staticmethod
-    def get_user_info(interaction: discord.Interaction):
+    def get_discord_user(interaction: discord.Interaction):
         name = interaction.user.name
         icon_url = interaction.user.display_avatar.url
         
