@@ -2,6 +2,7 @@
 user_tokens/
 format_test/
 __pycache__/
+fytops.log
 
 main.py
 test.py

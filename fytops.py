@@ -5,6 +5,7 @@ from spotifyapp import SpotifyAppOAuth, SpotifyApp
 import spotipy
 import os
 from urllib.parse import urlparse, parse_qs
+from loggerFyTops import logger, Color
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
@@ -21,16 +22,16 @@ class FyTops(commands.Bot):
         self.__setup_commands()
                
     async def on_ready(self):
-        print(f'Logged on as {self.user}!')
+        logger.info(f"Logged on Discord as {self.user}")
 
         try:
             synced = await self.tree.sync(guild=GUILD_ID)
-            print(f"Synced {len(synced)} commands to guild {GUILD_ID.id}")
+            logger.info(f"Synced {len(synced)} commands to guild {GUILD_ID.id}")
         
         except Exception as e:
-            print(f"Error syncing commands: {e}")
+            logger.error(f"Error syncing commands: {e}")
 
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if message.author == self.user:
             return 
         
@@ -44,11 +45,14 @@ class FyTops(commands.Bot):
         '''
         async def __command_call(command, interaction, time_range):
             user_id = interaction.user.id
+            
+            logger.info(f"{user_id}: User requesting /{command}")
 
             # Check user authentication
             notLogin = self.check_authentication(user_id)
             if notLogin:
                 await interaction.response.send_message(embed=notLogin)
+                logger.warning(f"{user_id}: Unable to proceed request due to unexisted or invalid access token")
                 return
             
             # Request and format data from Spotify
@@ -70,6 +74,7 @@ class FyTops(commands.Bot):
             # Convert to embed and create a pagination system
             data = DiscordApp(formatted)
             await data.fields_pagination(interaction=interaction, L=10)
+            logger.info(f"{user_id}: Successfully returned API call request")
 
         @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
         @discord.app_commands.describe(time_range="Over what time frame the data are computed")
@@ -92,7 +97,7 @@ class FyTops(commands.Bot):
             """
             Get user's recently played tracks
             """
-            await __command_call("recent", interaction, "medium_term")      
+            await __command_call("recent", interaction, "none")      
         
         @self.tree.command(name="login", description="Log in your Spotify account", guild=GUILD_ID)
         async def login(interaction: discord.Interaction):
@@ -133,7 +138,7 @@ class FyTops(commands.Bot):
                 try:
                     auth_manager.get_access_token(code=auth_code, as_dict=False)
                 except spotipy.exceptions.SpotifyOauthError as e:
-                    print(f"Token exchange error: {e}")
+                    logger.error(f"Token exchange error: {e}")
                     embed = discord.Embed(
                         color=discord.Color.red(),
                         description="❌ Invalid authorization code, please try again!"
@@ -154,6 +159,7 @@ class FyTops(commands.Bot):
             
             embed.set_thumbnail(url=icon_url)
             
+            logger.info(f"{user_id}: Valid authorization code, access token successfully created")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
         # TODO: display Spotify account info
@@ -168,10 +174,10 @@ class FyTops(commands.Bot):
             
             try:
                 os.remove(SpotifyAppOAuth.get_user_cache_path(user_id))
-                print(f"Discord user {interaction.user.name} logged out")
             except:
-                print(f"User token {user_id} not found, sent default logout message")
-
+                pass
+        
+            logger.debug(f"{user_id}: Logged out Spotify account, access token removed")
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
         @self.tree.command(name="help", description="How to use FyTops", guild=GUILD_ID)
@@ -193,11 +199,11 @@ class FyTops(commands.Bot):
                 object = SpotifyApp(auth_manager=auth_manager)
                 object.me()
                 embed = None # clear error message if token is valid
+                logger.debug(f"{user_id}: Authentication validated, user access token valid")
             # Refresh token invalid because user revoked authentication
             except spotipy.SpotifyOauthError as e:
-                print(f"Authentication Error: {e}")
                 os.remove(path)
-                print(f"Removed invalid token {user_id}")
+                logger.warning(f"{user_id}: Invalid acccess token due to user revoked app permission")
 
         return embed
     
