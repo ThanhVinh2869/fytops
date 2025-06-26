@@ -212,7 +212,24 @@ class FyTops(commands.Bot):
 
         @self.tree.command(name="help", description="How to use FyTops", guild=GUILD_ID)
         async def help(interaction: discord.Interaction):
-            await interaction.response.send_message(content="In development")
+            menu ='''     
+Hello, my name is **FyTops**, I am a bot developed by <@1181768796592156712> to help you access statistics of your Spotify account.
+
+**Available commands**
+`/artists <time_range>`: Show a list of your most listened Spotify artists.
+`/tracks <time_range>`: Show a list of your most listened Spotify tracks.
+`/recent`: Show your most recently listened tracks on Spotify.
+
+**Optional parameter**
+`<time_range>`: Set to `medium` by default, can be `short` (30 days), `medium` (6 months), or `long` (12 months). 
+'''
+
+            embed = discord.Embed(
+                color=discord.Colour.orange(),
+                description=menu
+            )
+            
+            await interaction.response.send_message(embed=embed)
             
     def check_authentication(self, user_id: int) -> str: 
         """
