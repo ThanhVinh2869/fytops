@@ -149,7 +149,8 @@ class FyTops(commands.Bot):
 
             # Get Spotify account info
             object = SpotifyApp(auth_manager=auth_manager)
-            description, icon_url = object.spotify_user_info()
+            description = object.user_info["description"].splitlines()[0]
+            thumbnail = object.user_info["thumbnail"]
               
             embed = discord.Embed(
                 color=discord.Color.green(),
@@ -157,7 +158,7 @@ class FyTops(commands.Bot):
                 description=description,
             )
             
-            embed.set_thumbnail(url=icon_url)
+            embed.set_thumbnail(url=thumbnail)
             
             logger.info(f"{user_id}: Valid authorization code, access token successfully created")
             await interaction.response.send_message(embed=embed, ephemeral=True)
