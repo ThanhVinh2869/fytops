@@ -10,6 +10,8 @@ class DiscordApp():
         self.dict_to_embed()
 
     def dict_to_embed(self):
+        """Convert a Python dictionary to a standard embed message"""
+        
         # TODO: Handle fields without pagination
         if "author" in self._dict and "name" in self._dict["author"]:
             self.embed.set_author(

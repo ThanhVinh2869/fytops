@@ -5,12 +5,27 @@ from spotifyapp import SpotifyAppOAuth, SpotifyApp
 import spotipy
 import os
 from urllib.parse import urlparse, parse_qs
-from loggerFyTops import logger, Color
+from loggerFyTops import logger
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 
 class FyTops(commands.Bot):
+    """A Discord Bot to display user's Spotify account data"""
+    
     def __init__(self, client_id, client_secret, redirect_uri):
+        """
+        Create an instance of Discord bot FyTops
+
+        Attributes
+        ---
+        client_id:
+            Must be supplied or set as environment variable
+        client_secret:
+            Must be supplied or set as environment variable
+        redirect_uri:
+            Must be supplied or set as environment variable
+        """
+        
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
@@ -40,10 +55,23 @@ class FyTops(commands.Bot):
             await message.channel.send(f'Pong! Latency: **{latency:.2f}ms**')
             
     def __setup_commands(self):
-        '''
-        Set up slash commands
-        '''
-        async def __command_call(command, interaction, time_range):
+        """Set up slash commands"""
+        
+        async def __command_call(command: str, interaction: discord.Interaction, time_range: str):
+            """Calling appropriate commands to request API calls
+
+            Parameters
+            ---
+            command: :class:`str`
+                "artists": get user's top listened artists  
+                "tracks": get user's top listened tracks  
+                "recent": get user's recently played tracks
+            interaction: :class:`discord.Interaction` 
+                current interaction from Discord
+            time_range: :class:`str`
+                short, medium, or long (can abbreviate)
+            """
+            
             user_id = interaction.user.id
             
             logger.info(f"{user_id}: User requesting /{command}")
@@ -65,6 +93,8 @@ class FyTops(commands.Bot):
                 "recent": object.format_recent
             }
             
+            # Call appropriate request and convert data to standard format
+            # /recent does not accept parameter "time_range"
             try:
                 formatted = commands_map[command](limit=50, time_range=time_range)
             except:
@@ -78,29 +108,23 @@ class FyTops(commands.Bot):
 
         @self.tree.command(name="artists", description="See your most listened artists", guild=GUILD_ID)
         @discord.app_commands.describe(time_range="Over what time frame the data are computed")
-        async def top_artists(interaction: discord.Interaction, time_range: str="medium_term"):
-            """
-            Get user's top listened artists
-            """
+        async def top_artists(interaction: discord.Interaction, time_range: str="medium_term"):       
             await __command_call("artists", interaction, time_range)
 
         @self.tree.command(name="tracks", description="See your most listened tracks", guild=GUILD_ID)
         @discord.app_commands.describe(time_range="Over what time frame the data are computed")
         async def top_tracks(interaction: discord.Interaction, time_range: str="medium_term"):
-            """
-            Get user's top listened tracks
-            """
             await __command_call("tracks", interaction, time_range)
 
         @self.tree.command(name="recent", description="See your recent tracks", guild=GUILD_ID)
         async def recent(interaction: discord.Interaction):
-            """
-            Get user's recently played tracks
-            """
             await __command_call("recent", interaction, "none")      
+        
         
         @self.tree.command(name="login", description="Log in your Spotify account", guild=GUILD_ID)
         async def login(interaction: discord.Interaction):
+            """Check Spotify account login information"""
+            
             user_id = interaction.user.id
 
             embed = discord.Embed(
@@ -108,6 +132,7 @@ class FyTops(commands.Bot):
                 description="✅ You have already logged in!"
             )
             
+            # Send authorization link if not logged in
             notLogin = self.check_authentication(user_id)
             if notLogin:
                 auth_manager = self.__create_auth_manager(user_id)
@@ -121,6 +146,8 @@ class FyTops(commands.Bot):
 
         @self.tree.command(name="auth", description="Provide authentication code", guild=GUILD_ID)
         async def auth(interaction: discord.Interaction, code: str):
+            """Manually retrieve authorization code from user"""
+            
             user_id = interaction.user.id
             auth_manager = self.__create_auth_manager(user_id)
             
@@ -147,11 +174,12 @@ class FyTops(commands.Bot):
                     await interaction.response.send_message(embed=embed, ephemeral=True)
                     return
 
-            # Get Spotify account info
+            # Get Spotify account info if authentication successful
             object = SpotifyApp(auth_manager=auth_manager)
             description = object.user_info["description"].splitlines()[0]
             thumbnail = object.user_info["thumbnail"]
               
+            # Construct embed message
             embed = discord.Embed(
                 color=discord.Color.green(),
                 title="✅ You have successfully logged in as",
@@ -163,9 +191,10 @@ class FyTops(commands.Bot):
             logger.info(f"{user_id}: Valid authorization code, access token successfully created")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
-        # TODO: display Spotify account info
         @self.tree.command(name="logout", description="Log out your current Spotify account", guild=GUILD_ID)
         async def logout(interaction: discord.Interaction):
+            """Remove Spotify account linkage with current Discord user"""
+            
             user_id = interaction.user.id
                         
             embed = discord.Embed(
@@ -185,7 +214,22 @@ class FyTops(commands.Bot):
         async def help(interaction: discord.Interaction):
             await interaction.response.send_message(content="In development")
             
-    def check_authentication(self, user_id):
+    def check_authentication(self, user_id: int) -> str: 
+        """
+        Check if Discord user has connected to a Spotify account
+
+        Attributes
+        ---
+        user_id: :class:`int`
+            Discord id of the current user
+
+        Returns
+        ---
+        :class:`str` 
+            return an embed message if cannot find a valid Spotify access token, 
+            return an empty string otherwise
+        """
+        
         path = SpotifyAppOAuth.get_user_cache_path(user_id)
 
         embed = discord.Embed(
@@ -201,7 +245,8 @@ class FyTops(commands.Bot):
                 object.me()
                 embed = None # clear error message if token is valid
                 logger.debug(f"{user_id}: Authentication validated, user access token valid")
-            # Refresh token invalid because user revoked authentication
+            
+            # Refresh token invalid - user revoked authentication
             except spotipy.SpotifyOauthError as e:
                 os.remove(path)
                 logger.warning(f"{user_id}: Invalid acccess token due to user revoked app permission")

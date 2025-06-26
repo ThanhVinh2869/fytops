@@ -1,11 +1,9 @@
 import discord
 from typing import Callable, Optional
 
+class Pagination(discord.ui.View):    
+    """Credit: https://stackoverflow.com/questions/76247812/how-to-create-pagination-embed-menu-in-discord-py"""
 
-class Pagination(discord.ui.View):
-    '''
-    https://stackoverflow.com/questions/76247812/how-to-create-pagination-embed-menu-in-discord-py
-    '''
     def __init__(self, interaction: discord.Interaction, get_page: Callable):
         self.interaction = interaction
         self.get_page = get_page
@@ -14,6 +12,8 @@ class Pagination(discord.ui.View):
         super().__init__(timeout=100)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Check if current interaction is from the original user"""
+        
         if interaction.user == self.interaction.user:
             return True
         else:
@@ -38,6 +38,8 @@ class Pagination(discord.ui.View):
         await interaction.response.edit_message(embed=emb, view=self)
 
     def update_buttons(self):
+        """Disable certain buttons at endpoints"""
+        
         self.children[0].disabled = self.index == 1
         self.children[1].disabled = self.index == 1
         self.children[2].disabled = self.index == self.total_pages
@@ -64,7 +66,7 @@ class Pagination(discord.ui.View):
         await self.edit_page(interaction)
 
     async def on_timeout(self):
-        # remove buttons on timeout
+        """Remove buttons on timeout"""
         message = await self.interaction.original_response()
         await message.edit(view=None)
 
