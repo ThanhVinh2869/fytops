@@ -1,5 +1,9 @@
 from spotipy import Spotify 
 from spotipy.oauth2 import SpotifyOAuth
+import requests
+from io import BytesIO
+from colorthief import ColorThief
+from discord import Color
 import json
 import dateutil.parser as dp
 from datetime import datetime 
@@ -32,42 +36,56 @@ class SpotifyApp(Spotify):
         self.__set_spotify_user_info()
 
     def __set_spotify_user_info(self):
-        null_image = "https://media.discordapp.net/attachments/1374160501877248113/1377302749628076062/null_avatar.png?ex=683878a4&is=68372724&hm=91a9d8e64bcdd49ae6a57b5684bd8ea47c84d910b5e961ba08a6c6eecd7b80f7&=&format=webp&quality=lossless&width=1260&height=1260"
         user = self.me()
         
+        # Compute embed description
         username = user["display_name"]
         user_url = user["external_urls"]["spotify"]
-        user_image = null_image if not user["images"] else user["images"][0]["url"]
-        
         now = datetime.now().isoformat()
         now = self.iso_to_unix(now)
-        
         description = f"[{username}]({user_url}) on Spotify\nData generated on <t:{now}:f>\n\u200b"
-        temp = {"description": description, "thumbnail": user_image}
+
+        # Get user profile picture
+        null_image = "https://media.discordapp.net/attachments/1374160501877248113/1377302749628076062/null_avatar.png?ex=683878a4&is=68372724&hm=91a9d8e64bcdd49ae6a57b5684bd8ea47c84d910b5e961ba08a6c6eecd7b80f7&=&format=webp&quality=lossless&width=1260&height=1260"
+        user_image = null_image if not user["images"] else user["images"][0]["url"]
         
-        self.user_info.update(temp)
+        # Get dominant color in user profile picture
+        response = requests.get(user_image)
+        response.raise_for_status()
+        
+        image = BytesIO(response.content)
+        
+        color_thief = ColorThief(image)
+        r, g, b = color_thief.get_color(quality=5)
+        
+        # Compute user attributes and update
+        attributes = {
+            "description": description, 
+            "thumbnail": user_image, 
+            "color": Color.from_rgb(r, g, b)
+        }
+        
+        self.user_info.update(attributes)
 
     def format_top_artists(self, limit=20, offset=0, time_range="medium_term"):
         time_range = self.alias_time_range(time_range)
         
         # Set embed attributes
         artists = {
-            "color": 0x07e380, "fields": [],
-            "title": self.time_range_definition("Top Artists", time_range)
-        }
+            "title": self.time_range_definition("Top Artists", time_range),
+            "fields": []
+        }   
         
-        # Set embed fields
-        data = self.current_user_top_artists(
-            limit=limit, offset=offset,
-            time_range=time_range
-        )
+        # Request data using API call
+        data = self.current_user_top_artists(limit=limit, offset=offset, time_range=time_range)
 
+        # Reformat the raw data
         for rank, item in enumerate(data["items"], 1):
             name = item["name"]
             url = item["external_urls"]["spotify"]
             followers = item["followers"]["total"]
             
-            # Format field
+            # Format individual fields
             field = {
                 "name": f"{self.rank_emojify(rank)} {name}",
                 "value": f"[Artist on Spotify]({url}) with {followers:,} followers",
@@ -83,16 +101,14 @@ class SpotifyApp(Spotify):
         
         # Set embed attributes
         tracks = {
-            "color": 0x07e380, "fields": [],
-            "title": self.time_range_definition("Top Tracks", time_range)
+            "title": self.time_range_definition("Top Tracks", time_range),
+            "fields": []
         }   
      
-        # Set embed fields
-        data = self.current_user_top_tracks(
-            limit=limit, offset=offset,
-            time_range=time_range
-        )
-
+        # Request data using API call
+        data = self.current_user_top_tracks(limit=limit, offset=offset, time_range=time_range)
+        
+        # Reformat the raw data
         for rank, item in enumerate(data["items"], 1):
             album_name = item["album"]["name"]
             album_url = item["external_urls"]["spotify"]
@@ -102,7 +118,7 @@ class SpotifyApp(Spotify):
             song_name = item["name"]
             song_url = item["external_urls"]["spotify"]
             
-            # Format field
+            # Format individual fields
             field = {
                 "name": f"{self.rank_emojify(rank)} {song_name} - {artists}",
                 "value": f"[Track on Spotify]({song_url}) from album [{album_name}]({album_url})",
@@ -114,14 +130,18 @@ class SpotifyApp(Spotify):
         return self.user_info | tracks
     
     def format_recent(self, limit=20):
+        EMOJI = ":musical_notes:"
+        
         # Set embed attributes
-        recent = {
-            "color": 0x07e380, "fields": [],
-            "title": self.time_range_definition("Recently played Tracks")
+        recent = { 
+            "title": self.time_range_definition("Recently played Tracks"),
+            "fields": []
         }   
 
-        EMOJI = ":musical_notes:"
+        # Request data using API call
         data = self.current_user_recently_played(limit=limit)
+        
+        # Reformat the raw data
         for item in data["items"]:
             song_name = item["track"]["name"]
             song_url = item["track"]["external_urls"]["spotify"]
@@ -131,6 +151,7 @@ class SpotifyApp(Spotify):
             
             artists = ", ".join([artist["name"] for artist in item["track"]["artists"]])
 
+            # Format individual fields
             field = {
                 "name": f"{EMOJI} {song_name} - {artists}",
                 "value": f"[Track on Spotify]({song_url})\nPlayed <t:{unix_time}:R> (<t:{unix_time}:f>)",
@@ -183,9 +204,7 @@ class SpotifyApp(Spotify):
         return round(dp.parse(time).timestamp())
     
     @staticmethod
-    def dict_to_json(
-        data, filename
-    ):
+    def dict_to_json(data, filename):
         """Writes a Python dictionary to a JSON file.
         
         Args:
