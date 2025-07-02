@@ -12,7 +12,6 @@ class DiscordApp():
     def dict_to_embed(self):
         """Convert a Python dictionary to a standard embed message"""
         
-        # TODO: Handle fields without pagination
         if "author" in self._dict and "name" in self._dict["author"]:
             self.embed.set_author(
                 name = self._dict["author"]["name"],
@@ -27,14 +26,23 @@ class DiscordApp():
         self.embed.set_image(url=self._dict.get("image", None))
         self.embed.set_thumbnail(url=self._dict.get("thumbnail", None))
         self.embed.timestamp = self._dict.get("timestamp", None)
-
-        # if "footer" in self._dict:
-        #     if "text" in self._dict["footer"]:
-        #         self.embed.set_footer(text=self._dict["footer"]["text"])
-        #     if "icon_url" in self._dict["footer"]:
-        #         self.embed.set_footer(icon_url=self._dict["footer"]["icon_url"])
+        
+        self.set_fields()
+        
+        if "footer" in self._dict:
+            if "text" in self._dict["footer"]:
+                self.embed.set_footer(text=self._dict["footer"]["text"])
+            if "icon_url" in self._dict["footer"]:
+                self.embed.set_footer(icon_url=self._dict["footer"]["icon_url"])
+                
+    def set_fields(self):
+        count = min(len(self.fields) - 1, 24) # max 25 fields per embed
+        for field in self.fields[0:count]:
+            self.embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
         
     async def fields_pagination(self, interaction: discord.Interaction, L: int = 10):
+        """Apply pagination to fields"""
+        
         if not self.fields:
             await interaction.response.send_message(content="You have no records", embed=self.embed)
             
