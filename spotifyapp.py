@@ -175,7 +175,7 @@ class SpotifyApp(Spotify):
     
     @staticmethod
     def alias_time_range(range: str):       
-        if range in ["s", "small", "small_term", "30", "4", "1"]:
+        if range in ["s", "short", "small_term", "30", "4", "1"]:
             return "short_term"
         
         elif range in ["l", "long", "long_term", "365", "52", "12"]:
