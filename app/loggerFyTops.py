@@ -16,7 +16,7 @@ logger = logging.getLogger("loggerFyTops")
 logger.setLevel(logging.DEBUG)
 
 console = logging.StreamHandler()
-file_handler = logging.FileHandler(filename="fytops.log")
+file_handler = logging.FileHandler(filename="../fytops.log")
 
 console_formatter = logging.Formatter(
     fmt=f"{Color.YELLOW}%(asctime)s {Color.BOLD}{Color.CYAN}%(levelname)s{Color.RESET}\t%(message)s",

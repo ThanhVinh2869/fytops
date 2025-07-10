@@ -1,5 +1,5 @@
 import discord
-from pagination import Pagination
+from app.pagination import Pagination
 
 class DiscordApp():
     def __init__(self, data: dict):

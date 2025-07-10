@@ -1,11 +1,12 @@
+import os
+import spotipy
 import discord
 from discord.ext import commands
-from discordapp import DiscordApp
-from spotifyapp import SpotifyAppOAuth, SpotifyApp
-import spotipy
-import os
 from urllib.parse import urlparse, parse_qs
-from loggerFyTops import logger
+
+from app.discordapp import DiscordApp
+from app.spotifyapp import SpotifyAppOAuth, SpotifyApp
+from app.loggerFyTops import logger
 
 GUILD_ID = discord.Object(id=1374160501390446625)
 

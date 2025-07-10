@@ -1,12 +1,13 @@
+import requests
 from spotipy import Spotify 
 from spotipy.oauth2 import SpotifyOAuth
-import requests
-from io import BytesIO
-from colorthief import ColorThief
-from discord import Color
+
 import json
 import dateutil.parser as dp
 from datetime import datetime 
+from io import BytesIO
+from colorthief import ColorThief
+from discord import Color
 
 class SpotifyAppOAuth(SpotifyOAuth):
     def __init__(self, user_id: int, client_id, client_secret, redirect_uri):
