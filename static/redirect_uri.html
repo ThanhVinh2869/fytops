@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Hello World</title>
+    </head>
+    <body>
+        <h1>This is my redirect URI!</h1>
+        <script>
+            // Get authorization code from URL
+            const params = new URLSearchParams(window.location.search);
+            const authCode = params.get('code');
+
+            // 
+            if (authCode) {
+                // Send code to backend
+                fetch('https://fytops.onrender.com/receive-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({code: authCode})
+                })
+                .then(response => response.data)
+                .then(data => {
+                    console.log('Success', data);
+                    document.body.innerHTML = "<h2>Authentication successful!</h2>";
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    document.body.innerHTML = "<h2>Error sending code to backend.</h2>";
+                });
+            } else {
+                document.body.innerHTML = "<h2>No authorization code found.</h2>";
+            }
+        </script>
+    </body>
+</html>
