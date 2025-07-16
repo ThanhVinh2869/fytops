@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-@app.route('/recieve-code', method=['POST'])
+@app.route('/', methods=['POST'])
 def receive_code():
     data = request.get_json()
     auth_code = data.get('code')
