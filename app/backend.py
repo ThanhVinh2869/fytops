@@ -12,3 +12,6 @@ def receive_code():
         return jsonify({'error': 'No code provided'}), 400
 
     print(auth_code)
+    
+if __name__ == '__main__':
+    app.run (debug=True)
