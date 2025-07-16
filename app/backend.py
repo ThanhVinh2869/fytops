@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 import requests
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=['https://render-test-61we.onrender.com'])
 
 @app.route('/', methods=['POST'])
 def receive_code():
