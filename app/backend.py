@@ -5,7 +5,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, origins=['https://render-test-61we.onrender.com'])
 
-@app.route('/', methods=['POST'])
+@app.route('/callback', methods=['POST'])
 def receive_code():
     data = request.get_json()
     auth_code = data.get('code')
